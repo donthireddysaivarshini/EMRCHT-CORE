@@ -51,28 +51,32 @@ export const normalizeIndianPhoneNumber = (rawPhone: any): string | null => {
 
 /**
  * Normalizes participant full names for exact matching.
- * Trims leading/trailing whitespace, collapses internal whitespace, and converts to lowercase.
+ * Converts to lowercase and removes all whitespace, dots, hyphens, and common punctuation.
+ * Preserves the exact sequence of letters while ignoring spacing, capitalization, and punctuation variations
+ * (e.g. "R. L. Narasimha Rao", "R.L. Narasimharao", and "r l narasimha rao" all evaluate identically).
  * Returns null for empty strings.
  */
 export const normalizeParticipantName = (rawName: any): string | null => {
   if (rawName === null || rawName === undefined || typeof rawName !== 'string') {
     return null;
   }
-  const normalized = rawName.trim().replace(/\s+/g, ' ').toLowerCase();
+  const normalized = rawName.toLowerCase().replace(/[\s.\-_',"`]/g, '');
   return normalized.length > 0 ? normalized : null;
 };
 
 /**
  * Checks exact match for CR number.
- * Uses exact string equality on trimmed values.
+ * Normalizes by converting to lowercase and stripping whitespace, hyphens, dots, and punctuation
+ * so formatting variations (e.g. "CR-001", "cr-001", "CR001", "CR 001") match reliably.
  */
 export const isExactCrMatch = (docCr: any, queryCr: any): boolean => {
-  if (!docCr || !queryCr) {
+  if (docCr === null || docCr === undefined || queryCr === null || queryCr === undefined) {
     return false;
   }
-  const strDoc = String(docCr).trim();
-  const strQuery = String(queryCr).trim();
-  return strDoc.length > 0 && strDoc === strQuery;
+  const clean = (val: any) => String(val).toLowerCase().replace(/[\s.\-_',"`]/g, '');
+  const cleanDoc = clean(docCr);
+  const cleanQuery = clean(queryCr);
+  return cleanDoc.length > 0 && cleanDoc === cleanQuery;
 };
 
 @Injectable({

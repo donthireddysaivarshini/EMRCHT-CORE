@@ -828,9 +828,12 @@ describe('ParticipantAccessService', () => {
     const RECENT = NOW - (2 * 60 * 60 * 1000);   // 2 hours old (< 24h)
 
     describe('Search Matching Engine & Normalization Rules', () => {
-      it('1. Exact CR match: CR-001 matches CR-001', () => {
+      it('1. Exact CR match: CR-001 matches CR-001, cr-001, CR001, and with spaces', () => {
         expect(isExactCrMatch('CR-001', 'CR-001')).to.be.true;
         expect(isExactCrMatch('  CR-001  ', 'CR-001')).to.be.true;
+        expect(isExactCrMatch('CR-001', 'cr-001')).to.be.true;
+        expect(isExactCrMatch('CR-001', 'CR001')).to.be.true;
+        expect(isExactCrMatch('CR-001', 'CR 001')).to.be.true;
       });
 
       it('2. Partial CR rejected: CR-00 does NOT match CR-001', () => {
@@ -863,14 +866,24 @@ describe('ParticipantAccessService', () => {
       });
 
       it('8. Exact name match: Ravi Kumar matches Ravi Kumar', () => {
-        expect(normalizeParticipantName('Ravi Kumar')).to.equal('ravi kumar');
+        expect(normalizeParticipantName('Ravi Kumar')).to.equal('ravikumar');
       });
 
-      it('9. Name case-insensitive match: ravi kumar and RAVI KUMAR match Ravi Kumar', () => {
-        const expected = 'ravi kumar';
+      it('9. Name case and spacing normalization: ravi kumar, RAVI KUMAR, and with extra spaces match', () => {
+        const expected = 'ravikumar';
         expect(normalizeParticipantName('ravi kumar')).to.equal(expected);
         expect(normalizeParticipantName('RAVI KUMAR')).to.equal(expected);
         expect(normalizeParticipantName('  Ravi   Kumar  ')).to.equal(expected);
+      });
+
+      it('9b. Punctuation and spacing variations match: R. L. Narasimha Rao matches R.L. Narasimharao', () => {
+        const expected = 'rlnarasimharao';
+        expect(normalizeParticipantName('R. L. Narasimha Rao')).to.equal(expected);
+        expect(normalizeParticipantName('R.L. Narasimharao')).to.equal(expected);
+        expect(normalizeParticipantName('R L Narasimha Rao')).to.equal(expected);
+        expect(normalizeParticipantName('r.l. narasimharao')).to.equal(expected);
+        expect(normalizeParticipantName('Muddaka Sai Sneha')).to.equal('muddakasaisneha');
+        expect(normalizeParticipantName('muddaka saisneha')).to.equal('muddakasaisneha');
       });
 
       it('10. Partial name rejected: Ravi, Ravi Ku, Ravi Kumar Test do NOT match Ravi Kumar', () => {
@@ -878,6 +891,12 @@ describe('ParticipantAccessService', () => {
         expect(normalizeParticipantName('Ravi')).to.not.equal(target);
         expect(normalizeParticipantName('Ravi Ku')).to.not.equal(target);
         expect(normalizeParticipantName('Ravi Kumar Test')).to.not.equal(target);
+      });
+
+      it('10b. Missing initials or substrings rejected: Narasimha Rao does NOT match R. L. Narasimha Rao', () => {
+        const target = normalizeParticipantName('R. L. Narasimha Rao');
+        expect(normalizeParticipantName('Narasimha Rao')).to.not.equal(target);
+        expect(normalizeParticipantName('R. L. Narasimha')).to.not.equal(target);
       });
 
       it('11. Multiple exact-name matches: returns all exact matches', async () => {
