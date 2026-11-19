@@ -139,6 +139,42 @@ export class ReportsContentComponent implements OnInit, OnDestroy {
     return form?.title || code || '';
   }
 
+  async viewAttachment(docId: string, attInfo: any) {
+    if (!docId || !attInfo) {
+      return;
+    }
+    const attName = attInfo.name || attInfo;
+    try {
+      const blob = await this.dbService.get().getAttachment(docId, attName);
+      const url = (window.URL || (window as any).webkitURL).createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.warn('Error fetching attachment blob, opening direct CouchDB link', err);
+      window.open(`/medic/${docId}/${attName}`, '_blank');
+    }
+  }
+
+  async downloadAttachment(docId: string, attInfo: any) {
+    if (!docId || !attInfo) {
+      return;
+    }
+    const attName = attInfo.name || attInfo;
+    const filename = attInfo.filename || attName;
+    try {
+      const blob = await this.dbService.get().getAttachment(docId, attName);
+      const url = (window.URL || (window as any).webkitURL).createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => (window.URL || (window as any).webkitURL).revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('Error downloading attachment', err);
+    }
+  }
+
   private hasSelectedNewReport(selectedReport, nextSelectedReport): boolean {
     const hadNoReportSelected = selectedReport === null || selectedReport.length === 0;
     const hadDifferentReportSelected = Array.isArray(selectedReport) &&

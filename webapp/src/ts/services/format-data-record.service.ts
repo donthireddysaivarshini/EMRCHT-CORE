@@ -456,32 +456,56 @@ export class FormatDataRecordService {
     return result;
   }
 
-  private getImagePath(doc, label, value) {
+  private getAttachmentInfo(doc, label, value) {
     if (!doc?._attachments) {
       return undefined;
     }
-    const isImagePath = filePath => doc._attachments[filePath]?.content_type?.startsWith('image/');
-    const filePath = 'user-file-' + value;
-    if (isImagePath(filePath)) {
-      return filePath;
+    const findPath = (val) => {
+      if (!val || typeof val !== 'string') {
+        return undefined;
+      }
+      if (doc._attachments[val]) {
+        return val;
+      }
+      if (doc._attachments['user-file-' + val]) {
+        return 'user-file-' + val;
+      }
+      return undefined;
+    };
+    let filePath = findPath(value);
+    if (!filePath) {
+      const labelParts = label.split('.').slice(1);
+      const binaryFilePath = labelParts
+        .slice(1)
+        .reduce(
+          (path, part) => /^\d+$/.test(part) ? `${path}[${Number(part) + 1}]` : `${path}/${part}`,
+          'user-file/fields'
+        );
+      if (doc._attachments[binaryFilePath]) {
+        filePath = binaryFilePath;
+      } else if (doc._attachments['user-file/' + labelParts.join('/')]) {
+        filePath = 'user-file/' + labelParts.join('/');
+      }
     }
-    const labelParts = label.split('.').slice(1);
-    const binaryFilePath = labelParts
-      .slice(1)
-      .reduce(
-        // Properly encode positional indicator
-        (path, part) => /^\d+$/.test(part) ? `${path}[${Number(part) + 1}]` : `${path}/${part}`,
-        'user-file/fields'
-      );
-    if (isImagePath(binaryFilePath)) {
-      return binaryFilePath;
-    }
-    // Fall back to the old style of naming image attachments
-    const legacyFilePath = 'user-file/' + labelParts.join('/');
-    if (isImagePath(legacyFilePath)) {
-      return legacyFilePath;
+    if (filePath && doc._attachments[filePath]) {
+      const ct = doc._attachments[filePath].content_type || '';
+      const isImg = ct.startsWith('image/');
+      const isPdf = ct === 'application/pdf' || filePath.toLowerCase().endsWith('.pdf') || String(value).toLowerCase().endsWith('.pdf');
+      return {
+        docId: doc._id,
+        name: filePath,
+        contentType: ct,
+        isImage: isImg,
+        isPdf: isPdf,
+        filename: value || filePath,
+      };
     }
     return undefined;
+  }
+
+  private getImagePath(doc, label, value) {
+    const info = this.getAttachmentInfo(doc, label, value);
+    return info?.isImage ? info.name : undefined;
   }
 
   /*
@@ -638,15 +662,22 @@ export class FormatDataRecordService {
         const value = values[key];
         const label = labelPrefix + '.' + key;
         if (_.isObject(value)) {
-          results.push({ label, depth });
-          this.getFields(doc, results, value, label, depth + 1);
-        } else {
           results.push({
             label,
+            translationKey: label.replace(/\.\d+(?=\.|$)/g, ''),
+            depth,
+          });
+          this.getFields(doc, results, value, label, depth + 1);
+        } else {
+          const attachmentInfo = this.getAttachmentInfo(doc, label, value);
+          results.push({
+            label,
+            translationKey: label.replace(/\.\d+(?=\.|$)/g, ''),
             value,
             depth,
             target: this.getClickTarget(key, doc),
-            imagePath: this.getImagePath(doc, label, value),
+            imagePath: attachmentInfo?.isImage ? attachmentInfo.name : undefined,
+            attachmentInfo,
           });
         }
       });

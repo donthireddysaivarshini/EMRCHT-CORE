@@ -112,7 +112,7 @@ export class PrintReportService {
     const rows = this.collectRows(doc);
     // xml reports carry translation keys as labels - same rule the
     // reports-content template uses ({{field.label | translate}})
-    return this.buildRows(rows, doc.content_type === 'xml');
+    return this.buildRows(rows, doc.content_type === 'xml', doc._id);
   }
 
   private print(printContainer: HTMLElement) {
@@ -171,6 +171,23 @@ export class PrintReportService {
       #report-print-view .row .value { margin-left: 8px; }
       #report-print-view .row.depth-0 { margin-top: 6px; }
       #report-print-view .score-badge { font-weight: 600; }
+      #report-print-view .print-attachment-img {
+        display: block;
+        max-width: 100%;
+        max-height: 480px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        page-break-inside: avoid;
+      }
+      #report-print-view .print-pdf-badge {
+        margin: 6px 0;
+        padding: 6px 10px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        font-size: 10pt;
+      }
     `;
     return style;
   }
@@ -212,16 +229,16 @@ export class PrintReportService {
   }
 
   private label(field: any, translateLabels: boolean): string {
-    const raw = field.label ?? '';
-    if (!translateLabels || !raw) {
-      return raw;
+    const key = field.translationKey || field.label || '';
+    if (!translateLabels || !key) {
+      return field.label || '';
     }
-    const translated = this.translateService.instant(raw);
+    const translated = this.translateService.instant(key);
     // ngx-translate echoes the key back when it has no entry for it
-    return translated === raw ? raw : translated;
+    return translated === key ? (field.label || key) : translated;
   }
 
-  private buildRows(rows: any[], translateLabels: boolean): HTMLElement {
+  private buildRows(rows: any[], translateLabels: boolean, docId?: string): HTMLElement {
     const wrap = document.createElement('div');
     rows.forEach((field) => {
       if (field.value === undefined && !field.isArray) {
@@ -244,7 +261,19 @@ export class PrintReportService {
         score.textContent = ` — Score: ${field.score}`;
         row.appendChild(score);
       }
-      if (field.value !== undefined) {
+      if (field.attachmentInfo?.isImage || field.imagePath) {
+        const attName = field.attachmentInfo?.name || field.imagePath;
+        const img = document.createElement('img');
+        img.className = 'print-attachment-img';
+        img.src = `/medic/${docId}/${attName}`;
+        img.alt = field.value || 'Attachment';
+        row.appendChild(img);
+      } else if (field.attachmentInfo?.isPdf) {
+        const pdfBadge = document.createElement('div');
+        pdfBadge.className = 'print-pdf-badge';
+        pdfBadge.innerHTML = `<strong>PDF Attachment:</strong> ${this.escape(field.attachmentInfo.filename || field.value)}`;
+        row.appendChild(pdfBadge);
+      } else if (field.value !== undefined) {
         const value = document.createElement('span');
         value.className = 'value';
         value.textContent = `: ${field.value}`;

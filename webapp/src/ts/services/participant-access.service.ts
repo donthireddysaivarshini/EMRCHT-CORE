@@ -296,14 +296,36 @@ export class ParticipantAccessService {
       }
     }
 
+    // Current user can ALWAYS access reports that they submitted themselves
+    let currentUserId: string | undefined;
+    try {
+      const userContact = await this.userContactService.get({ hydrateLineage: false });
+      currentUserId = userContact?._id;
+    } catch (_err) {
+      currentUserId = undefined;
+    }
+
+    if (currentUserId && (
+      (doc.contact && typeof doc.contact === 'object' && doc.contact._id === currentUserId) ||
+      (doc.contact && typeof doc.contact === 'string' && doc.contact === currentUserId) ||
+      doc.reported_by === currentUserId ||
+      doc.fields?.screened_by === currentUserId
+    )) {
+      return true;
+    }
+
     // List of known participant assessment forms
     const participantAssessmentForms = [
       'ddst',
       'dst',
       'moca_assessment',
       'moca',
+      'moca_b',
+      'moca_telugu',
       'vineland',
+      'vineland_v2',
       'vsms',
+      'cog5',
       'stage1_screening',
       'stage2_assessment',
       'assessment_visit',

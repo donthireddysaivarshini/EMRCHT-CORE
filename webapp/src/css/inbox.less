@@ -593,6 +593,61 @@ mm-attachment-image img {
   max-width: 100%;
 }
 
+.attachment-box {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  display: inline-block;
+  max-width: 100%;
+
+  &.pdf-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #fff;
+    border-color: #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    .attachment-name {
+      font-weight: 500;
+      color: #2d3748;
+      i {
+        margin-right: 6px;
+        color: #e53e3e;
+      }
+    }
+  }
+
+  &.image-box {
+    mm-attachment-image img {
+      max-width: 320px;
+      max-height: 240px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: block;
+      margin-bottom: 6px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .attachment-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+
+    .btn {
+      font-size: 12px;
+      padding: 4px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+}
+
 mm-contact-profile-image,
 mm-contact-profile-image mm-attachment-image {
   display: contents;

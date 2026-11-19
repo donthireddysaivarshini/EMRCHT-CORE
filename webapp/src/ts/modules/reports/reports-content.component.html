@@ -73,11 +73,11 @@
               *ngFor="let field of (selection.formatted.content_type === 'xml' ? selection.formatted.fields : selection.formatted.fields.data)"
               class="indent-{{field.depth || 0}}" [attr.test-id]="field?.label">
               <label>
-                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type === 'xml'">{{field.label | translate}}</span>
+                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type === 'xml'">{{(field.translationKey || field.label) | translate}}</span>
                 <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type !== 'xml'">{{field.label}}</span>
                 <span class="fa fa-cogs" *ngIf="field.generated" title="{{'Generated report field' | translate }}"></span>
               </label>
-              <p *ngIf="!field.imagePath">
+              <p *ngIf="!field.imagePath && !field.attachmentInfo?.isPdf && !field.attachmentInfo?.isImage">
                 <span *ngIf="field?.target?.filter" [attr.test-id]="field?.label" [class.disabled]="selectMode">
                   <a (click)="search(field.target.filter)">{{field.value}}</a>
                 </span>
@@ -86,9 +86,31 @@
                 </span>
                 <span [attr.test-id]="'value'" *ngIf="!field.target">{{field.value}}</span>
               </p>
-              <mm-attachment-image *ngIf="field.imagePath"
-                                   [attachment]="{ docId: selection.formatted?._id, name: field.imagePath }">
-              </mm-attachment-image>
+              <div class="attachment-box pdf-box" *ngIf="field.attachmentInfo?.isPdf">
+                <div class="attachment-name">
+                  <i class="fa fa-file-pdf-o"></i> {{field.attachmentInfo.filename}}
+                </div>
+                <div class="attachment-actions">
+                  <button type="button" class="btn btn-primary" (click)="viewAttachment(selection.formatted._id, field.attachmentInfo)">
+                    <i class="fa fa-eye"></i> {{'View PDF' | translate}}
+                  </button>
+                  <button type="button" class="btn btn-secondary" (click)="downloadAttachment(selection.formatted._id, field.attachmentInfo)">
+                    <i class="fa fa-download"></i> {{'Download' | translate}}
+                  </button>
+                </div>
+              </div>
+              <div class="attachment-box image-box" *ngIf="field.attachmentInfo?.isImage || field.imagePath">
+                <mm-attachment-image [attachment]="{ docId: selection.formatted?._id, name: field.attachmentInfo?.name || field.imagePath }">
+                </mm-attachment-image>
+                <div class="attachment-actions">
+                  <button type="button" class="btn btn-primary" (click)="viewAttachment(selection.formatted._id, field.attachmentInfo || { name: field.imagePath, filename: field.value })">
+                    <i class="fa fa-search-plus"></i> {{'View / Expand' | translate}}
+                  </button>
+                  <button type="button" class="btn btn-secondary" (click)="downloadAttachment(selection.formatted._id, field.attachmentInfo || { name: field.imagePath, filename: field.value })">
+                    <i class="fa fa-download"></i> {{'Download' | translate}}
+                  </button>
+                </div>
+              </div>
             </li>
           </ng-container>
 
