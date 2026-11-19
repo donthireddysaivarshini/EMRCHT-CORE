@@ -234,8 +234,18 @@ export class PrintReportService {
       return field.label || '';
     }
     const translated = this.translateService.instant(key);
-    // ngx-translate echoes the key back when it has no entry for it
-    return translated === key ? (field.label || key) : translated;
+    if (translated && translated !== key) {
+      return translated;
+    }
+    // Clean human fallback if unmapped so raw codes never leak
+    const raw = key.startsWith('report.') ? key.split('.').slice(2).join('.') : key;
+    const segs = raw.split('.').filter(p => !/^\d+$/.test(p));
+    const leaf = segs[segs.length - 1] || raw;
+    return leaf
+      .replace(/^g_|^grp_|^calc_|^mb_|^m8_|^te_/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .trim();
   }
 
   private buildRows(rows: any[], translateLabels: boolean, docId?: string): HTMLElement {

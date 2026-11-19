@@ -73,8 +73,8 @@
               *ngFor="let field of (selection.formatted.content_type === 'xml' ? selection.formatted.fields : selection.formatted.fields.data)"
               class="indent-{{field.depth || 0}}" [attr.test-id]="field?.label">
               <label>
-                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type === 'xml'">{{(field.translationKey || field.label) | translate}}</span>
-                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type !== 'xml'">{{field.label}}</span>
+                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type === 'xml'">{{((field.translationKey || field.label) | translate) | humanLabel}}</span>
+                <span [attr.test-id]="'label'" *ngIf="selection.formatted.content_type !== 'xml'">{{field.label | humanLabel}}</span>
                 <span class="fa fa-cogs" *ngIf="field.generated" title="{{'Generated report field' | translate }}"></span>
               </label>
               <p *ngIf="!field.imagePath && !field.attachmentInfo?.isPdf && !field.attachmentInfo?.isImage">

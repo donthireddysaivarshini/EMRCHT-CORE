@@ -138,3 +138,33 @@ export class LineagePipe implements PipeTransform {
     return typeof lastItem === 'string' ? lastItem : lastItem?.name;
   }
 }
+
+@Pipe({
+  name: 'humanLabel'
+})
+@Injectable({
+  providedIn: 'root'
+})
+export class HumanLabelPipe implements PipeTransform {
+  transform(value: any): string {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+    // If it's an unmapped key or contains report. or underscores
+    if (value.startsWith('report.') || value.includes('_') || (value.includes('.') && !value.includes(' '))) {
+      let s = value;
+      if (s.startsWith('report.')) {
+        const parts = s.split('.');
+        s = parts.length >= 3 ? parts.slice(2).join('.') : parts[1] || s;
+      }
+      const segs = s.split('.').filter(p => !/^\d+$/.test(p));
+      const leaf = segs[segs.length - 1] || s;
+      const cleaned = leaf.replace(/^g_|^grp_|^calc_|^mb_|^m8_|^te_/, '');
+      return cleaned
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .trim();
+    }
+    return value;
+  }
+}

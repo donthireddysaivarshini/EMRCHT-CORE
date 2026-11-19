@@ -27,7 +27,7 @@ import {
 } from '@mm-components/status-icons/status-icons.template';
 import { AttachmentImageComponent } from '@mm-components/attachment-image/attachment-image.component';
 import { TranslatePipe } from '@ngx-translate/core';
-import { LineagePipe, TitlePipe } from '@mm-pipes/message.pipe';
+import { LineagePipe, TitlePipe, HumanLabelPipe } from '@mm-pipes/message.pipe';
 import { RelativeDatePipe, StatePipe } from '@mm-pipes/date.pipe';
 import { FormIconPipe } from '@mm-pipes/form-icon.pipe';
 
@@ -48,7 +48,8 @@ import { FormIconPipe } from '@mm-pipes/form-icon.pipe';
     RelativeDatePipe,
     StatePipe,
     TitlePipe,
-    FormIconPipe
+    FormIconPipe,
+    HumanLabelPipe
   ]
 })
 export class ReportsContentComponent implements OnInit, OnDestroy {
