@@ -6,6 +6,8 @@ import { DbService } from '@mm-services/db.service';
 import { ChangesService } from '@mm-services/changes.service';
 import { SessionService } from '@mm-services/session.service';
 import { ReadDocsProvider } from '@mm-providers/read-docs.provider';
+import { AuthService } from '@mm-services/auth.service';
+import { ParticipantAccessService } from '@mm-services/participant-access.service';
 import { DOC_TYPES } from '@medic/constants';
 
 @Injectable({
@@ -20,7 +22,9 @@ export class UnreadRecordsService implements OnDestroy {
     private dbService: DbService,
     private changesService: ChangesService,
     private sessionService: SessionService,
-    private readDocsProvider: ReadDocsProvider
+    private readDocsProvider: ReadDocsProvider,
+    private authService: AuthService,
+    private participantAccessService: ParticipantAccessService
   ) { }
 
   ngOnDestroy(): void {
@@ -50,11 +54,46 @@ export class UnreadRecordsService implements OnDestroy {
         this.getTotal(),
         this.getRead()
       ])
-      .then(([total, read]) => {
+      .then(async ([total, read]) => {
         const result = this.TYPES.reduce((countMap, type) => {
           countMap[type] = this.getRowValueForType(type, total) - this.getRowValueForType(type, read);
           return countMap;
         }, {});
+
+        try {
+          const canBrowseAll = (await this.authService.has('can_browse_all_participants')) ||
+                               (await this.authService.has('can_view_participants'));
+          if (!canBrowseAll) {
+            // For interns: do not show total unread count across CouchDB (e.g. 77)
+            // Instead, count only unread reports from their accessible 24-hour window.
+            const metaDb = this.dbService.get({ meta: true });
+            const readRes = await metaDb.allDocs({
+              startkey: 'read:report:',
+              endkey: 'read:report:\ufff0'
+            }).catch(() => ({ rows: [] }));
+            const readSet = new Set((readRes.rows || []).map(r => r.id.replace('read:report:', '')));
+
+            const db = this.dbService.get();
+            const recent = await db.query('medic-client/reports_by_date', {
+              descending: true,
+              limit: 50,
+              include_docs: true,
+            }).catch(() => ({ rows: [] }));
+
+            let accessibleUnread = 0;
+            for (const row of recent.rows) {
+              if (row.doc && !readSet.has(row.id)) {
+                const allowed = await this.participantAccessService.canAccessReport(row.doc);
+                if (allowed) {
+                  accessibleUnread++;
+                }
+              }
+            }
+            result['report'] = accessibleUnread;
+          }
+        } catch (_err) {
+          // Keep default if access check fails
+        }
 
         if (callback) {
           callback(null, result);
