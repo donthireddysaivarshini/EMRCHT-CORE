@@ -150,8 +150,8 @@ export class ReportsContentComponent implements OnInit, OnDestroy {
       const url = (window.URL || (window as any).webkitURL).createObjectURL(blob);
       window.open(url, '_blank');
     } catch (err) {
-      console.warn('Error fetching attachment blob, opening direct CouchDB link', err);
-      window.open(`/medic/${docId}/${attName}`, '_blank');
+      console.warn('Error fetching attachment blob, opening direct export link', err);
+      window.open(`/exports/attachment/${docId}/${attName}`, '_blank');
     }
   }
 
@@ -172,7 +172,14 @@ export class ReportsContentComponent implements OnInit, OnDestroy {
       a.remove();
       setTimeout(() => (window.URL || (window as any).webkitURL).revokeObjectURL(url), 1000);
     } catch (err) {
-      console.error('Error downloading attachment', err);
+      console.warn('Fallback download via direct export link', err);
+      const a = document.createElement('a');
+      a.href = `/exports/attachment/${docId}/${attName}`;
+      a.download = filename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
   }
 

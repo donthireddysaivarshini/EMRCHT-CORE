@@ -457,49 +457,70 @@ export class FormatDataRecordService {
   }
 
   private getAttachmentInfo(doc, label, value) {
-    if (!doc?._attachments) {
+    if (!value || typeof value !== 'string') {
       return undefined;
     }
-    const findPath = (val) => {
-      if (!val || typeof val !== 'string') {
-        return undefined;
+    const valLower = value.toLowerCase();
+    const isPdfExt = valLower.endsWith('.pdf');
+    const isImgExt = /\.(jpe?g|png|gif|webp|svg|bmp)$/i.test(valLower);
+
+    let filePath: string | undefined;
+
+    if (doc?._attachments) {
+      const keys = Object.keys(doc._attachments);
+      if (doc._attachments[value]) {
+        filePath = value;
+      } else if (doc._attachments['user-file-' + value]) {
+        filePath = 'user-file-' + value;
+      } else {
+        const cleanVal = value.replace(/[\s_]+/g, '').toLowerCase();
+        const matchedKey = keys.find((k) => {
+          const cleanK = k.replace(/^user-file-/, '').replace(/[\s_]+/g, '').toLowerCase();
+          return cleanK === cleanVal || k.toLowerCase().endsWith(valLower);
+        });
+        if (matchedKey) {
+          filePath = matchedKey;
+        }
       }
-      if (doc._attachments[val]) {
-        return val;
-      }
-      if (doc._attachments['user-file-' + val]) {
-        return 'user-file-' + val;
-      }
-      return undefined;
-    };
-    let filePath = findPath(value);
-    if (!filePath) {
-      const labelParts = label.split('.').slice(1);
-      const binaryFilePath = labelParts
-        .slice(1)
-        .reduce(
-          (path, part) => /^\d+$/.test(part) ? `${path}[${Number(part) + 1}]` : `${path}/${part}`,
-          'user-file/fields'
-        );
-      if (doc._attachments[binaryFilePath]) {
-        filePath = binaryFilePath;
-      } else if (doc._attachments['user-file/' + labelParts.join('/')]) {
-        filePath = 'user-file/' + labelParts.join('/');
+
+      if (!filePath) {
+        const labelParts = label.split('.').slice(1);
+        const binaryFilePath = labelParts
+          .slice(1)
+          .reduce(
+            (path, part) => /^\d+$/.test(part) ? `${path}[${Number(part) + 1}]` : `${path}/${part}`,
+            'user-file/fields'
+          );
+        if (doc._attachments[binaryFilePath]) {
+          filePath = binaryFilePath;
+        } else if (doc._attachments['user-file/' + labelParts.join('/')]) {
+          filePath = 'user-file/' + labelParts.join('/');
+        }
       }
     }
-    if (filePath && doc._attachments[filePath]) {
-      const ct = doc._attachments[filePath].content_type || '';
-      const isImg = ct.startsWith('image/');
-      const isPdf = ct === 'application/pdf' || filePath.toLowerCase().endsWith('.pdf') || String(value).toLowerCase().endsWith('.pdf');
-      return {
-        docId: doc._id,
-        name: filePath,
-        contentType: ct,
-        isImage: isImg,
-        isPdf: isPdf,
-        filename: value || filePath,
-      };
+
+    if (!filePath && (isPdfExt || isImgExt)) {
+      filePath = 'user-file-' + value;
     }
+
+    if (filePath) {
+      const att = doc?._attachments?.[filePath];
+      const ct = att?.content_type || (isPdfExt ? 'application/pdf' : isImgExt ? 'image/jpeg' : '');
+      const isImg = isImgExt || ct.startsWith('image/');
+      const isPdf = isPdfExt || ct === 'application/pdf';
+
+      if (isImg || isPdf) {
+        return {
+          docId: doc?._id,
+          name: filePath,
+          contentType: ct,
+          isImage: isImg,
+          isPdf: isPdf,
+          filename: value,
+        };
+      }
+    }
+
     return undefined;
   }
 

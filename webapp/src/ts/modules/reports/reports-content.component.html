@@ -100,7 +100,9 @@
                 </div>
               </div>
               <div class="attachment-box image-box" *ngIf="field.attachmentInfo?.isImage || field.imagePath">
-                <mm-attachment-image [attachment]="{ docId: selection.formatted?._id, name: field.attachmentInfo?.name || field.imagePath }">
+                <mm-attachment-image [attachment]="{ docId: selection.formatted?._id, name: field.attachmentInfo?.name || field.imagePath }"
+                  (click)="viewAttachment(selection.formatted._id, field.attachmentInfo || { name: field.imagePath, filename: field.value })"
+                  style="cursor: pointer;" title="{{'Click to view / expand' | translate}}">
                 </mm-attachment-image>
                 <div class="attachment-actions">
                   <button type="button" class="btn btn-primary" (click)="viewAttachment(selection.formatted._id, field.attachmentInfo || { name: field.imagePath, filename: field.value })">

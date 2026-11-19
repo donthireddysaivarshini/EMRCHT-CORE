@@ -37,6 +37,8 @@ export class AttachmentImageComponent implements OnDestroy {
     try {
       const blob = await this.dbService.get().getAttachment(docId, name);
       this.objectUrl = (window.URL || window.webkitURL).createObjectURL(blob);
+    } catch (e) {
+      this.objectUrl = `/exports/attachment/${docId}/${name}`;
     } finally {
       this.loading = false;
     }

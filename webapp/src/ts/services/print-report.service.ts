@@ -273,15 +273,28 @@ export class PrintReportService {
       }
       if (field.attachmentInfo?.isImage || field.imagePath) {
         const attName = field.attachmentInfo?.name || field.imagePath;
+        const link = document.createElement('a');
+        link.href = `/exports/attachment/${docId}/${attName}`;
+        link.target = '_blank';
+        link.className = 'print-attachment-link';
         const img = document.createElement('img');
         img.className = 'print-attachment-img';
         img.src = `/medic/${docId}/${attName}`;
         img.alt = field.value || 'Attachment';
-        row.appendChild(img);
-      } else if (field.attachmentInfo?.isPdf) {
+        link.appendChild(img);
+        row.appendChild(link);
+
+        const openLink = document.createElement('div');
+        openLink.style.cssText = 'margin-top: 4px; font-size: 11px;';
+        openLink.innerHTML = `<a href="/exports/attachment/${docId}/${attName}" target="_blank" style="color: #0066cc; text-decoration: underline;">🔍 Open Full Image</a>`;
+        row.appendChild(openLink);
+      } else if (field.attachmentInfo?.isPdf || (typeof field.value === 'string' && field.value.toLowerCase().endsWith('.pdf'))) {
+        const attName = field.attachmentInfo?.name || field.value;
+        const filename = field.attachmentInfo?.filename || field.value;
         const pdfBadge = document.createElement('div');
         pdfBadge.className = 'print-pdf-badge';
-        pdfBadge.innerHTML = `<strong>PDF Attachment:</strong> ${this.escape(field.attachmentInfo.filename || field.value)}`;
+        pdfBadge.style.cssText = 'margin: 6px 0; padding: 6px 10px; background: #f0f7ff; border: 1px solid #cce3ff; border-radius: 4px; display: inline-block;';
+        pdfBadge.innerHTML = `<a href="/exports/attachment/${docId}/${attName}" target="_blank" style="color: #0066cc; text-decoration: underline; font-weight: bold; font-size: 13px;">📄 View Document: ${this.escape(filename)} (Click to open)</a>`;
         row.appendChild(pdfBadge);
       } else if (field.value !== undefined) {
         const value = document.createElement('span');
